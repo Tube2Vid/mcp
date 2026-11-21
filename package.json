@@ -1,6 +1,29 @@
 {
   "name": "@tube2vid/mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
+  "description": "Tube2Vid MCP server: let Claude, Cursor and other AI tools download video and audio from YouTube, TikTok, Instagram and 1,800+ sites.",
+  "license": "MIT",
+  "homepage": "https://tube2vid.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tube2Vid/mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Tube2Vid/mcp/issues"
+  },
+  "keywords": [
+    "tube2vid",
+    "mcp",
+    "mcp server",
+    "model context protocol",
+    "claude",
+    "cursor",
+    "ai tools",
+    "youtube downloader",
+    "tiktok downloader",
+    "instagram downloader",
+    "video downloader"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,19 +33,39 @@
       "default": "./dist/index.js"
     }
   },
+  "bin": {
+    "tube2vid-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build",
+    "test": "node --import tsx --test src/*.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0",
+    "@tube2vid/sdk": "^1.1.0",
     "zod": "^3.24.4"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
-  }
+  },
+  "author": "Tube2Vid (https://tube2vid.com)",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "mcpName": "io.github.Tube2Vid/mcp"
 }

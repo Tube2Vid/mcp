@@ -1,65 +1,17 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+#!/usr/bin/env node
+import { DEFAULT_BASE_URL, Tube2VidClient } from "@tube2vid/sdk";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { z } from "zod";
+import { createServer } from "./server.js";
 
-const apiBaseUrl = process.env.TUBE2VID_API_URL ?? "http://localhost:8000";
-const apiKey = process.env.TUBE2VID_API_KEY ?? "";
+const client = new Tube2VidClient({
+  baseUrl: process.env.TUBE2VID_API_URL || DEFAULT_BASE_URL,
+  apiKey: process.env.TUBE2VID_API_KEY
+});
 
 const port = Number(process.env.PORT ?? 8000);
 const transportMode = process.env.MCP_TRANSPORT ?? "stdio";
-
-function createServer() {
-  const server = new McpServer({
-    name: "tube2vid",
-    version: "1.0.0"
-  });
-
-  server.tool(
-    "list_supported_platforms",
-    "List Tube2Vid supported platforms and capabilities.",
-    {},
-    async () => jsonToolResponse(await apiGet("/v1/platforms"))
-  );
-
-  server.tool(
-    "get_platform_health",
-    "Get live platform health and provider status.",
-    {},
-    async () => jsonToolResponse(await apiGet("/v1/platforms/health"))
-  );
-
-  server.tool(
-    "get_account_usage",
-    "Get current credit balance and usage summary.",
-    {},
-    async () => jsonToolResponse(await apiGet("/v1/usage"))
-  );
-
-  server.tool(
-    "submit_download_job",
-    "Submit a media download job.",
-    {
-      url: z.string().url(),
-      mode: z.enum(["auto", "video", "audio", "gallery"]).default("auto"),
-      format: z.string().default("mp4"),
-      quality: z.string().default("best")
-    },
-    async (input) => jsonToolResponse(await apiPost("/v1/jobs", input))
-  );
-
-  server.tool(
-    "get_job_status",
-    "Get status for a submitted Tube2Vid job.",
-    {
-      jobId: z.string()
-    },
-    async ({ jobId }) => jsonToolResponse(await apiGet(`/v1/jobs/${jobId}`))
-  );
-
-  return server;
-}
 
 if (transportMode === "http") {
   const app = createMcpExpressApp({
@@ -68,7 +20,7 @@ if (transportMode === "http") {
   });
 
   app.post("/mcp", async (request: any, response: any) => {
-    const server = createServer();
+    const server = createServer(client);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined
     });
@@ -109,36 +61,7 @@ if (transportMode === "http") {
     console.log(`Tube2Vid MCP Streamable HTTP listening on ${port}`);
   });
 } else {
-  const server = createServer();
+  const server = createServer(client);
   const transport = new StdioServerTransport();
   await server.connect(transport);
-}
-
-async function apiGet(path: string) {
-  const response = await fetch(`${apiBaseUrl}${path}`, { headers: authHeaders() });
-  return response.json();
-}
-
-async function apiPost(path: string, body: unknown) {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    method: "POST",
-    headers: { ...authHeaders(), "content-type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  return response.json();
-}
-
-function authHeaders(): Record<string, string> {
-  return apiKey ? { authorization: `Bearer ${apiKey}` } : {};
-}
-
-function jsonToolResponse(data: unknown) {
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(data, null, 2)
-      }
-    ]
-  };
 }
